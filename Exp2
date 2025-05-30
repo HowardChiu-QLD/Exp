@@ -1,0 +1,54 @@
+import os
+import pandas as pd
+
+def merge_excel_files(input_folder, output_file, target_sheet_name):
+    # 檢查輸入資料夾是否存在
+    if not os.path.exists(input_folder):
+        print(f"資料夾 {input_folder} 不存在。")
+        return
+    
+    # 初始化空的 DataFrame
+    combined_data = pd.DataFrame()
+    
+    # 遍歷資料夾內所有檔案
+    for file_name in os.listdir(input_folder):
+        file_path = os.path.join(input_folder, file_name)
+        
+        # 檢查檔案是否為 .xlsx 格式
+        if file_name.endswith('.xlsx') and os.path.isfile(file_path):
+            try:
+                # 獲取檔案內所有工作表名稱
+                sheet_names = pd.ExcelFile(file_path, engine='openpyxl').sheet_names
+                
+                # 檢查是否存在目標工作表
+                if target_sheet_name in sheet_names:
+                    # 只讀取目標工作表
+                    data = pd.read_excel(file_path, sheet_name=target_sheet_name, engine='openpyxl')
+                    
+                    # 新增一欄記錄檔名
+                    data['FileName'] = file_name
+                    
+                    # 將資料附加到 combined_data
+                    combined_data = pd.concat([combined_data, data], ignore_index=True)
+                else:
+                    print(f"檔案 {file_name} 不包含目標工作表 {target_sheet_name}，跳過此檔案。")
+            except Exception as e:
+                print(f"無法讀取檔案 {file_name}，錯誤：{e}")
+    
+    # 檢查是否有資料
+    if combined_data.empty:
+        print("未找到有效的 Excel 檔案或目標工作表。")
+        return
+    
+    # 將合併後的資料寫入新的 Excel 檔案
+    try:
+        combined_data.to_excel(output_file, index=False, engine='openpyxl')
+        print(f"合併完成！結果已儲存至 {output_file}")
+    except Exception as e:
+        print(f"無法寫入輸出檔案，錯誤：{e}")
+
+# 使用範例
+input_folder = r'你的資料夾路徑'  # 替換成你的資料夾路徑
+output_file = r'合併結果.xlsx'    # 輸出檔案名稱
+target_sheet_name = "你的目標工作表名稱"  # 替換成你要合併的工作表名稱
+merge_excel_files(input_folder, output_file, target_sheet_name)
